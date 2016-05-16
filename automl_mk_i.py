@@ -9,7 +9,7 @@ Import data
 """
 # Optimization parameters
 init_classifier_params = {'n_estimators': [20], 'criterion': ['gini'], 'max_depth': [10], 'max_features': ['auto'],
-                          'min_samples_split': [2]}
+                          'min_samples_split': [2], 'n_jobs': [3]}
 
 train = pd.DataFrame.from_csv('train.csv')
 train_label_col = 'coli'

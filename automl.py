@@ -2,8 +2,6 @@ import numpy as np
 import pandas as pd
 from sklearn.cross_validation import StratifiedKFold
 
-# setattr(a, x, 'Bla')
-
 
 class AutoSKLearnClassification:
     """
@@ -20,29 +18,35 @@ class AutoSKLearnClassification:
         self.classifier = sk_classifier
         self.metric = metric_fun
         self.prob = calc_probability
-        self.best_score = 0
-        self.train_solved = None
-        self.test_solved = None
         self.mc = n_montecarlo
-        self.classifier_params = params
+        self.best_score = 0
+        self.best_params = params
+        self.best_train_solved = None
+        self.best_test_solved = None
         self.author = 'Yair Beer'
 
-    def sklearn_cv_classification(self):
-        mc_round_list = []
+    def opt_param(self, param, init_val, min_val, max_val, is_int, iterations):
+        cur_params = self.best_params
+        cur_params[param] = init_val
+        for it_i in range(iterations):
+            self.sklearn_cv_classification(cur_params)
+
+    def sklearn_cv_classification(self, params):
+        # Set current paramer values
+        for key, value in params.iteritems():  # Iterating over dictionary
+            setattr(self.classifier, key, value)  # setting attribute in a class
         mc_acc_mean = []
         mc_acc_sd = []
-        print_results = []
         train_predictions = np.ones((self.train_index.shape[0],))
 
         # CV
-        mc_auc = []
-        mc_round = []
+        mc_metric = []
         mc_train_pred = []
         # Use monte carlo simulation if needed to find small improvements
         for i_mc in range(self.mc):
             kf = StratifiedKFold(self.train_labels.values.flatten(), n_folds=4, shuffle=True, random_state=i_mc ** 3)
 
-            local_auc = []
+            cur_metric = []
             # Finding optimized number of rounds
             for cv_train_index, cv_test_index in kf:
                 y_train = self.train_labels.iloc[cv_train_index].values.flatten()
@@ -59,30 +63,42 @@ class AutoSKLearnClassification:
                     predicted_results = self.classifier.predict(self.df.loc[
                                                                     self.train_index].values[cv_test_index, :])
                 train_predictions[cv_test_index] = predicted_results
-                local_auc.append(self.metric(y_test, predicted_results))
+                cur_metric.append(self.metric(y_test, predicted_results))
 
-            print('Accuracy score ', np.mean(local_auc))
-            mc_auc.append(np.mean(local_auc))
+            print('The metric score ', np.mean(cur_metric))
+            mc_metric.append(np.mean(cur_metric))
             mc_train_pred.append(train_predictions)
 
-            # Getting the mean integer
-            mc_train_pred = np.mean(np.array(mc_train_pred), axis=0)
-
-            mc_round_list.append(int(np.mean(mc_round)))
-            mc_acc_mean.append(np.mean(mc_auc))
-            mc_acc_sd.append(np.std(mc_auc))
-            print('The AUC range is: %.5f to %.5f and best n_round: %d' %
-                  (mc_acc_mean[-1] - mc_acc_sd[-1], mc_acc_mean[-1] + mc_acc_sd[-1], mc_round_list[-1]))
-            print_results.append('The accuracy range is: %.5f to %.5f and best n_round: %d' %
-                                 (mc_acc_mean[-1] - mc_acc_sd[-1], mc_acc_mean[-1] + mc_acc_sd[-1], mc_round_list[-1]))
-            print('For ', mc_auc)
+            mc_acc_mean.append(np.mean(mc_metric))
+            mc_acc_sd.append(np.std(mc_metric))
+            print('The score range is: %.5f to %.5f' %
+                  (mc_acc_mean[-1] - mc_acc_sd[-1], mc_acc_mean[-1] + mc_acc_sd[-1]))
+            print('For ', mc_metric)
             print('The AUC of the average prediction is: %.5f' % self.metric(self.train_labels.values, mc_train_pred))
 
             # predicting the test set
-            mc_pred = []
+            mc_test_pred = []
             for i_mc in range(self.mc):
                 self.classifier.fit(self.df.loc[self.train_index], self.train_labels.values.flatten())
-                predicted_results = self.classifier.predict(self.df.loc[self.test_index])
-                mc_pred.append(predicted_results)
+                if self.prob:
+                    test_predictions = self.classifier.predict_proba(self.df.loc[self.test_index])
+                else:
+                    test_predictions = self.classifier.predict(self.df.loc[self.test_index])
+                mc_test_pred.append(test_predictions)
 
-            self.test_solved = np.mean(np.array(mc_pred), axis=0)
+            if self.mc:
+                mc_train_pred = mean_cellwise(mc_train_pred)
+                mc_test_pred = mean_cellwise(mc_test_pred)
+            else:
+                mc_train_pred = mc_train_pred[0]
+                mc_test_pred = mc_test_pred[0]
+
+            return mc_train_pred, mc_test_pred
+
+
+def mean_cellwise(list_arr):
+    mean_mat = np.zeros(list_arr[0].shape)
+    for arr in list_arr:
+        mean_mat += arr
+    mean_mat /= len(list_arr)
+    return mean_mat
