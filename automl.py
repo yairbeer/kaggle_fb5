@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import scipy.stats as stats
 from sklearn.cross_validation import StratifiedKFold
 
 
@@ -28,8 +29,7 @@ class AutoSKLearnClassification:
     def opt_param(self, param, init_val, min_val, max_val, is_int, iterations):
         cur_params = self.best_params
         cur_params[param] = init_val
-        for it_i in range(iterations):
-            self.sklearn_cv_classification(cur_params)
+        self.sklearn_cv_classification(cur_params)
 
     def sklearn_cv_classification(self, params):
         # Set current paramer values
@@ -102,3 +102,32 @@ def mean_cellwise(list_arr):
         mean_mat += arr
     mean_mat /= len(list_arr)
     return mean_mat
+
+"""
+Sub functions to find MAPK
+"""
+
+
+def percent2mapk(predict_percent, k, n_classes):
+    predict_map = []
+    for i_row, pred_row in enumerate(predict_percent):
+        predict_map.append([])
+        ranked_row = list(stats.rankdata(pred_row, method='ordinal'))
+        for op_rank in range(k):
+            predict_map[i_row].append(ranked_row.index(n_classes - op_rank - 1))
+    return predict_map
+
+
+def list2str(predict_list, join_by):
+    str_list = []
+    for predict_result in predict_list:
+        predict_result = list(map(lambda x: str(x), predict_result))
+        str_list.append(join_by.join(predict_result))
+    return str_list
+
+
+def y2list(y_array):
+    y_list = []
+    for actual in y_array:
+        y_list.append([actual])
+    return y_list
