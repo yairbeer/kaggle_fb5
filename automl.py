@@ -11,14 +11,16 @@ class AutoSKLearnClassification:
     """
 
     def __init__(self, df, train_index, test_index, train_labels, sk_classifier, calc_probability, metric_fun, params,
-                 n_montecarlo=1):
+                 metric_params, n_classes, n_montecarlo=1):
         self.df = pd.DataFrame(df)
         self.train_labels = train_labels
         self.train_index = train_index
         self.test_index = test_index
         self.classifier = sk_classifier
         self.metric = metric_fun
+        self.metric_params = metric_params
         self.prob = calc_probability
+        self.classes = n_classes
         self.mc = n_montecarlo
         self.best_score = 0
         self.best_params = params
@@ -26,15 +28,19 @@ class AutoSKLearnClassification:
         self.best_test_solved = None
         self.author = 'Yair Beer'
 
-    def opt_param(self, param, init_val, min_val, max_val, is_int, iterations):
+    def opt_param(self, param, init_val, min_val, max_val, is_int, iterations, min_lim, max_lim):
         cur_params = self.best_params
+        y_list = y2list(self.train_labels)
         cur_params[param] = init_val
-        self.sklearn_cv_classification(cur_params)
+        cur_train_pred, cur_test_pred = self.sklearn_cv_classification(cur_params)
+        train_predict_map = percent2mapk(cur_train_pred, 3, self.classes)
+        cur_score = self.metric(self.train_labels.values, cur_train_pred, 3)
 
     def sklearn_cv_classification(self, params):
         # Set current paramer values
-        for key, value in params.iteritems():  # Iterating over dictionary
-            setattr(self.classifier, key, value)  # setting attribute in a class
+        # for key, value in params.iteritems():  # Iterating over dictionary
+        #     setattr(self.classifier, key, value)  # setting attribute in a class
+        self.classifier = self.classifier(**params)
         mc_acc_mean = []
         mc_acc_sd = []
         train_predictions = np.ones((self.train_index.shape[0],))

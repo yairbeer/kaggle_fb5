@@ -1,3 +1,4 @@
+from ml_metrics import mapk
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
@@ -8,13 +9,16 @@ import automl
 Import data
 """
 # Optimization parameters
-init_classifier_params = {'n_estimators': [20], 'criterion': ['gini'], 'max_depth': [10], 'max_features': ['auto'],
-                          'min_samples_split': [2], 'n_jobs': [3]}
+init_classifier_params = {'n_estimators': 20, 'criterion': 'gini', 'max_depth': 10, 'max_features': 'auto',
+                          'min_samples_split': 2, 'n_jobs': 3}
+metric_params = {'k':  3}
 
 train = pd.DataFrame.from_csv('train.csv')
-train_label_col = 'coli'
+print(train)
+train_label_col = 'place_id'
 train_labels = train[train_label_col]
 print(train_labels.value_counts(normalize=True))
+print(train_labels.value_counts().shape[0])
 del train[train_label_col]
 
 # Remove label column name for test
@@ -48,7 +52,8 @@ Base level optimization
 """
 sk_opt = automl.AutoSKLearnClassification(df=dataframe, train_index=train_index, test_index=test_index,
                                           train_labels=train_labels, sk_classifier=RandomForestClassifier,
-                                          calc_probability=True, metric_fun=None, params=init_classifier_params)
+                                          calc_probability=True, metric_fun=mapk, params=init_classifier_params,
+                                          n_classes=train_labels.value_counts().shape[0])
 
 """
 Meta level optimization
