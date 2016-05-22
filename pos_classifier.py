@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import scipy.stats as stats
 from ml_metrics import mapk
 import cProfile
 
@@ -13,31 +12,36 @@ def y2list(y_array):
 
 
 def dist2mapk(predict_dist, k):
-    predict_map = []
-    ranked_row = list(stats.rankdata(predict_dist, method='ordinal'))
-    for op_rank in range(k):
-        predict_map.append(ranked_row.index(op_rank + 1))
-    return predict_map
+    return np.argsort(predict_dist)[:k]
 
 
-def main():
-    closest_3places_ids = np.zeros((train.shape[0],)).astype(object)
+def map_brain(dataset, n_rows, calc_map, save_name=None):
+
     map_k = 3
     eff_sigma = 0.00126
-    n_rows = train.shape[0]
     print('There are %d rows' % n_rows)
-    for i, cur_coor in enumerate(train_coor[:n_rows]):
+
+    data_coor = dataset[['x', 'y']].values
+
+    closest_3places_ids = []
+    closest_3places_ids_str = np.zeros((dataset.shape[0],)).astype(object)
+    for i, cur_coor in enumerate(data_coor[:n_rows]):
         if not i % 100:
             print('row %d' % i)
-        dist_sqr = (places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2
-        ranked_ids = dist2mapk(dist_sqr, map_k)
+        dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2) / places_freq
+        ranked_ids = np.argsort(dist_sqr)[:map_k]
         cur_places = []
         for place_id in ranked_ids:
             cur_places.append(places_ID[place_id])
-        closest_3places_ids[i] = cur_places
-        cur_places_str = ' '.join(map(lambda x: str(x), cur_places))  # For submission
+        closest_3places_ids.append(cur_places)
+        closest_3places_ids_str[i] = ' '.join(map(lambda x: str(x), cur_places))  # For submission
 
-    print('The MAP3 score is %f' % mapk(label_list, list(closest_3places_ids), map_k))
+    if calc_map:
+        print('The MAP3 score is %f' % mapk(label_list, closest_3places_ids, map_k))
+    if save_name:
+        submission = pd.DataFrame.from_csv('sample_submission.csv')
+        submission['place_id'] = closest_3places_ids_str
+        submission.to_csv(save_name)
 
 np.set_printoptions(suppress=True)
 
@@ -45,14 +49,25 @@ places = pd.DataFrame.from_csv('places_loc_sqr_weight_2016-05-17-17-36.csv')
 places_ID = places.index.values.astype('int64')
 places_x = places['x'].values
 places_y = places['y'].values
+places_freq = places['n_persons'].values
 
 train = pd.DataFrame.from_csv('train.csv')
+print(train)
+print(places)
 
 train_label_col = 'place_id'
 train_labels = train[train_label_col]
 label_list = y2list(train_labels)
 del train[train_label_col]
 
-train_coor = train[['x', 'y']].values
+cProfile.run('map_brain(train, 1000, True)', sort='time')
 
-cProfile.run('main()', sort='time')
+test = pd.DataFrame.from_csv('test.csv')
+print(test)
+map_brain(test, test.shape[0], False, 'min_dist.csv')
+
+# n = 10000
+# minimum distance:
+# MAP3 = 0.131000
+# minimum (distance / n_people)
+# MAP3 = 0.173500
