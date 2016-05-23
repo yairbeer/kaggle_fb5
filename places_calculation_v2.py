@@ -22,8 +22,6 @@ def main():
         place_df = train.iloc[places_index == place_id]
         place_weights_acc_sqred = 1 / (place_df['accuracy'].values ** 2)
 
-        plt.hist2d(place_df['x'].values, place_df['y'].values, bins=100)
-        plt.show()
         places_loc_sqr_wei.append([place_id,
                                    np.average(place_df['x'].values, weights=place_weights_acc_sqred),
                                    np.std(place_df['x'].values),
@@ -31,6 +29,9 @@ def main():
                                    np.std(place_df['y'].values),
                                    place_df.shape[0]])
 
+        print(places_loc_sqr_wei[-1])
+        plt.hist2d(place_df['x'].values, place_df['y'].values, bins=100)
+        plt.show()
     places_loc_sqr_wei = np.array(places_loc_sqr_wei)
     column_names = ['x', 'x_sd', 'y', 'y_sd', 'n_persons']
     places_loc_sqr_wei = pd.DataFrame(data=places_loc_sqr_wei[:, 1:], index=places_loc_sqr_wei[:, 0],
