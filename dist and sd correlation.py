@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 places = pd.DataFrame.from_csv('places_loc_sqr_weight_2016-05-17-17-36.csv')
-# plt.hist(places['n_persons'], bins=100)
-# plt.show()
+print(places)
+plt.hist2d(places['x'].values, places['y'].values, bins=200)
+plt.show()
 
 train = pd.DataFrame.from_csv('train.csv')
 
