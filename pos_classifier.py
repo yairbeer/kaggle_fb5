@@ -11,11 +11,17 @@ def y2list(y_array):
     return y_list
 
 
-def dist2mapk(predict_dist, k):
-    return np.argsort(predict_dist)[:k]
+def argsort_short(metric_array, k):
+    # best start
+    indexes = np.ones((metric_array.shape[0],)).astype(bool)
+    min_indexes = []
+    for i in range(k):
+        min_indexes.append(np.argmin(metric_array[indexes]))
+        indexes[min_indexes[-1]] = False
+    return min_indexes
 
 
-def map_brain(dataset, n_rows, calc_map, save_name=None):
+def map_brain(dataset, n_rows, labels=[], save_name=None):
 
     map_k = 3
     eff_sigma = 0.00126
@@ -29,15 +35,15 @@ def map_brain(dataset, n_rows, calc_map, save_name=None):
         if not i % 100:
             print('row %d' % i)
         dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2) / places_freq
-        ranked_ids = np.argsort(dist_sqr)[:map_k]
+        ranked_ids = argsort_short(dist_sqr, map_k)
         cur_places = []
         for place_id in ranked_ids:
             cur_places.append(places_ID[place_id])
         closest_3places_ids.append(cur_places)
         closest_3places_ids_str[i] = ' '.join(map(lambda x: str(x), cur_places))  # For submission
 
-    if calc_map:
-        print('The MAP3 score is %f' % mapk(label_list, closest_3places_ids, map_k))
+    if len(labels):
+        print('The MAP3 score is %f' % mapk(labels, closest_3places_ids, map_k))
     if save_name:
         submission = pd.DataFrame.from_csv('sample_submission.csv')
         submission['place_id'] = closest_3places_ids_str
@@ -50,21 +56,23 @@ places_ID = places.index.values.astype('int64')
 places_x = places['x'].values
 places_y = places['y'].values
 places_freq = places['n_persons'].values
+print(places)
 
 train = pd.DataFrame.from_csv('train.csv')
 print(train)
-print(places)
 
 train_label_col = 'place_id'
 train_labels = train[train_label_col]
 label_list = y2list(train_labels)
 del train[train_label_col]
 
-cProfile.run('map_brain(train, 1000, True)', sort='time')
+cProfile.run('map_brain(train, 10000, label_list)', sort='time')
+
+del train
 
 test = pd.DataFrame.from_csv('test.csv')
 print(test)
-map_brain(test, test.shape[0], False, 'min_dist.csv')
+map_brain(test, test.shape[0], save_name='min_dist.csv')
 
 # n = 10000
 # minimum distance:
