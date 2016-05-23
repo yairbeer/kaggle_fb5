@@ -55,7 +55,8 @@ def find_index_in_cell(train, test, x_min, y_min, step):
 
     print('There are %d train samples' % train_cell.shape[0])
     print('There are %d test samples' % test_cell.shape[0])
-    print('There are %d different classes' % train_labels.value_counts().shape[0])
+    print(list(train_labels.value_counts())[:100])
+
     return train_cell, test_cell, train_labels
 
 # Work on the train data and test data in the cell
