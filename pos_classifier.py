@@ -11,31 +11,34 @@ def y2list(y_array):
     return y_list
 
 
-def argsort_short(metric_array, k):
+def argsort_short(metric_array, k, min_arg=True):
     # best start
     indexes = np.ones((metric_array.shape[0],)).astype(bool)
     min_indexes = []
     for i in range(k):
-        min_indexes.append(np.argmin(metric_array[indexes]))
+        if min_arg:
+            min_indexes.append(np.argmin(metric_array[indexes]))
+        else:
+            min_indexes.append(np.argmax(metric_array[indexes]))
         indexes[min_indexes[-1]] = False
     return min_indexes
 
 
-def map_brain(dataset, n_rows, labels=[], save_name=None):
+def map_brain(dataset, n_rows, eff_sigma, labels=[], save_name=None):
 
     map_k = 3
-    eff_sigma = 0.00126
     print('There are %d rows' % n_rows)
 
-    data_coor = dataset[['x', 'y']].values
-
+    data_coor_sigma = dataset[['x', 'y', 'accuracy']].values
     closest_3places_ids = []
     closest_3places_ids_str = np.zeros((dataset.shape[0],)).astype(object)
-    for i, cur_coor in enumerate(data_coor[:n_rows]):
-        if not i % 100:
+    for i, cur_coor in enumerate(data_coor_sigma[:n_rows]):
+        if not i % 1000:
             print('row %d' % i)
-        dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2) / places_freq
-        ranked_ids = argsort_short(dist_sqr, map_k)
+        dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2) / \
+                   (2 * (cur_coor[2] * eff_sigma) ** 2)
+        metric_resuls = np.exp(-1 * dist_sqr) * places_freq
+        ranked_ids = argsort_short(metric_resuls, map_k, False)
         cur_places = []
         for place_id in ranked_ids:
             cur_places.append(places_ID[place_id])
@@ -66,16 +69,22 @@ train_labels = train[train_label_col]
 label_list = y2list(train_labels)
 del train[train_label_col]
 
-cProfile.run('map_brain(train, 10000, label_list)', sort='time')
+eff_sigma = 0.01
+cProfile.run('map_brain(train, 10000, eff_sigma, labels=label_list)', sort='time')
 
-del train
+# del train
+#
+# test = pd.DataFrame.from_csv('test.csv')
+# print(test)
+# map_brain(test, test.shape[0], save_name='min_dist_o_freq.csv')
 
-test = pd.DataFrame.from_csv('test.csv')
-print(test)
-map_brain(test, test.shape[0], save_name='min_dist.csv')
-
-# n = 10000
-# minimum distance:
-# MAP3 = 0.131000
-# minimum (distance / n_people)
-# MAP3 = 0.173500
+# calculated eff_sigma = 0.00126
+# n = 100000
+# minimum: dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2)
+# MAP3 = 0.14...
+# minimum: dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2) / places_freq
+# MAP3 = 0.163200
+# maximum: dist_sqr = ((places_x - cur_coor[0]) ** 2 + (places_y - cur_coor[1]) ** 2) / places_freq ...
+# maximum: metric_resuls = np.exp(-1 * dist_sqr) * places_freq
+# sigma = 0.0001, MAP3 = 0.15
+# sigma = 0.0001, MAP3 = 0.163200
