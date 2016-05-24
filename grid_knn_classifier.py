@@ -73,7 +73,7 @@ def find_index_in_cell(train, test, x_min, y_min, step):
     train_labels = train_cell[train_label_col]
     del train_cell[train_label_col]
 
-    return train_cell.values, test_cell.values, train_labels.values
+    return train_cell, test_cell, train_labels
 
 # Work on the train data and test data in the cell
 # Split train into train and validation based on time
@@ -85,19 +85,39 @@ def main():
 
     step = 0.1
     map_k = 3
-    # x_arange, y_arange = create_grid((0, 10), (0, 10), step)
-    x_arange, y_arange = create_grid((4, 5), (4, 5), step)
+    save_name = 'sub_30nn.csv'
+
+    x_arange, y_arange = create_grid((0, 10), (0, 10), step)
+    # x_arange, y_arange = create_grid((4, 5), (4, 5), step)
+    # np.random.seed(2016)
+    # # train evaluating
+    # for x_cell_min in x_arange:
+    #     for y_cell_min in y_arange:
+    #         print('Working on %f, %f cell' % (x_cell_min + step / 2, y_cell_min + step / 2))
+    #         cur_train, cur_test, cur_labels = find_index_in_cell(train_inc_labels, test, x_cell_min, y_cell_min, step)
+    #         print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
+    #         knn_result_list = []
+    #         label_list = []
+    #         for i, probe in enumerate(cur_train):
+    #             knn_result_list.append(functions_py.knn(probe, cur_train, cur_labels, mapk=map_k, knn=20))
+    #             label_list.append([cur_labels[i]])
+    #         print('The MAP3 score is %f' % mapk(label_list, knn_result_list, map_k))
     np.random.seed(2016)
+    # test predicting
+    knn_ids_str = np.full((test.shape[0],), fill_value='0 1 2', dtype=object)
     for x_cell_min in x_arange:
         for y_cell_min in y_arange:
             print('Working on %f, %f cell' % (x_cell_min + step / 2, y_cell_min + step / 2))
             cur_train, cur_test, cur_labels = find_index_in_cell(train_inc_labels, test, x_cell_min, y_cell_min, step)
             print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
-            knn_result_list = []
-            label_list = []
-            for i, probe in enumerate(cur_train):
-                knn_result_list.append(functions_py.knn(probe, cur_train, cur_labels, mapk=map_k, knn=20))
-                label_list.append([cur_labels[i]])
-            print('The MAP3 score is %f' % mapk(label_list, knn_result_list, map_k))
+            test_index = cur_test.index.values
+            for i, probe in enumerate(cur_test.values):
+                knn_ids_str[test_index[i]] = ' '.join(functions_py.knn(probe, cur_train.values, cur_labels.values,
+                                                                       self_test=False, mapk=map_k, k_nn=30))
+    submission = pd.DataFrame.from_csv('sample_submission.csv')
+    submission['place_id'] = knn_ids_str
+    submission.to_csv(save_name)
 
-cProfile.run('main()', sort='time')
+
+# cProfile.run('main()', sort='time')
+main()
