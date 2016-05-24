@@ -1,6 +1,8 @@
 import cProfile
 import pandas as pd
 import numpy as np
+import functions_py
+from ml_metrics import mapk
 
 
 def y2list(y_array):
@@ -51,7 +53,7 @@ def find_index_in_cell(train, test, x_min, y_min, step):
     :param x_min: cell's minmimum x
     :param y_min: cell's minmimum y
     :param step: cell width
-    :return: train and test persons whom are in a specific cell
+    :return: train and test persons ARRAY whom are in a specific cell
     """
     data_coor = train['x'].values
     data_in_x = np.logical_and(data_coor > x_min, data_coor < (x_min + step))
@@ -71,11 +73,7 @@ def find_index_in_cell(train, test, x_min, y_min, step):
     train_labels = train_cell[train_label_col]
     del train_cell[train_label_col]
 
-    print('There are %d train samples' % train_cell.shape[0])
-    print('There are %d test samples' % test_cell.shape[0])
-    print(list(train_labels.value_counts())[:100])
-
-    return train_cell, test_cell, train_labels
+    return train_cell.values, test_cell.values, train_labels.values
 
 # Work on the train data and test data in the cell
 # Split train into train and validation based on time
@@ -86,12 +84,20 @@ def main():
     train_inc_labels, test = readfiles()
 
     step = 0.1
-    x_arange, y_arange = create_grid((0, 10), (0, 10), step)
-
+    map_k = 3
+    # x_arange, y_arange = create_grid((0, 10), (0, 10), step)
+    x_arange, y_arange = create_grid((4, 5), (4, 5), step)
+    np.random.seed(2016)
     for x_cell_min in x_arange:
         for y_cell_min in y_arange:
-            print('Working on %d, %d cell' % (x_cell_min + step / 2, y_cell_min + step / 2))
+            print('Working on %f, %f cell' % (x_cell_min + step / 2, y_cell_min + step / 2))
             cur_train, cur_test, cur_labels = find_index_in_cell(train_inc_labels, test, x_cell_min, y_cell_min, step)
             print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
+            knn_result_list = []
+            label_list = []
+            for i, probe in enumerate(cur_train):
+                knn_result_list.append(functions_py.knn(probe, cur_train, cur_labels, mapk=map_k, knn=20))
+                label_list.append([cur_labels[i]])
+            print('The MAP3 score is %f' % mapk(label_list, knn_result_list, map_k))
 
 cProfile.run('main()', sort='time')
