@@ -4,9 +4,7 @@ import numpy as np
 
 
 def y2list(y_array):
-    y_list = []
-    for actual in y_array:
-        y_list.append([actual])
+    y_list = y_array.reshape((y_array.shape[0], 1)).tolist()
     return y_list
 
 
@@ -31,4 +29,8 @@ def main():
     label_list = y2list(train_labels)
     del train[train_label_col]
 
-cProfile.run('main()', sort='time')
+    for i, line in enumerate(train):
+        train_place = train.iloc[places_index == place_id]
+
+# cProfile.run('main()', sort='time')
+main()

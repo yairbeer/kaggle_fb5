@@ -27,13 +27,17 @@ def main():
                                    np.std(place_df['x'].values),
                                    np.average(place_df['y'].values, weights=place_weights_acc_sqred),
                                    np.std(place_df['y'].values),
+                                   np.average(np.log(place_df['accuracy'].values)),
+                                   np.std(np.log(place_df['accuracy'].values)),
                                    place_df.shape[0]])
 
-        print(places_loc_sqr_wei[-1])
-        plt.hist2d(place_df['x'].values, place_df['y'].values, bins=100)
+        # print(places_loc_sqr_wei[-1])
+        # plt.hist2d(place_df['x'].values, place_df['y'].values, bins=100)
+        # plt.show()
+        plt.hist(np.log(place_df['accuracy'].values), bins=20)
         plt.show()
     places_loc_sqr_wei = np.array(places_loc_sqr_wei)
-    column_names = ['x', 'x_sd', 'y', 'y_sd', 'n_persons']
+    column_names = ['x_mean', 'x_sd', 'y_mean', 'y_sd', 'accuracy_mean', 'accuracy_sd', 'n_persons']
     places_loc_sqr_wei = pd.DataFrame(data=places_loc_sqr_wei[:, 1:], index=places_loc_sqr_wei[:, 0],
                                       columns=column_names)
 
