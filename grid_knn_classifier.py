@@ -83,7 +83,7 @@ def find_index_in_cell(train, test, x_min, y_min, step):
 def main():
     train_inc_labels, test = readfiles()
 
-    step = 0.1
+    step = 0.25
     map_k = 3
     save_name = 'sub_30nn.csv'
 
@@ -114,6 +114,7 @@ def main():
             for i, probe in enumerate(cur_test.values):
                 knn_ids_str[test_index[i]] = ' '.join(functions_py.knn(probe, cur_train.values, cur_labels.values,
                                                                        self_test=False, mapk=map_k, k_nn=30))
+                # print(test_index[i], knn_ids_str[test_index[i]])
     submission = pd.DataFrame.from_csv('sample_submission.csv')
     submission['place_id'] = knn_ids_str
     submission.to_csv(save_name)
