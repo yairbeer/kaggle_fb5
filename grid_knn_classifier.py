@@ -100,7 +100,7 @@ def main():
             print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
             for i, probe in enumerate(cur_train.values):
                 knn_result_list.append(list(functions_py.knn(probe, cur_train.values, cur_labels.values,
-                                                             self_test=True, mapk=map_k, k_nn=20)))
+                                                             self_test=True, mapk=map_k, k_nn=30)))
                 label_list.append([cur_labels.values[i]])
             print('The MAP3 score is %f' % mapk(label_list, knn_result_list, map_k))
             print('***')
