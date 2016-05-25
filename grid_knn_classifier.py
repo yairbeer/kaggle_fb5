@@ -81,27 +81,30 @@ def find_index_in_cell(train, test, x_min, y_min, step):
 
 
 def main():
-    train_inc_labels, test = readfiles()
-
     step = 0.25
     map_k = 3
     save_name = 'sub_30nn.csv'
+    split_val_time = 73000
 
+    train_inc_labels, test = readfiles()
     x_arange, y_arange = create_grid((0, 10), (0, 10), step)
-    # x_arange, y_arange = create_grid((4, 5), (4, 5), step)
-    # np.random.seed(2016)
-    # # train evaluating
-    # for x_cell_min in x_arange:
-    #     for y_cell_min in y_arange:
-    #         print('Working on %f, %f cell' % (x_cell_min + step / 2, y_cell_min + step / 2))
-    #         cur_train, cur_test, cur_labels = find_index_in_cell(train_inc_labels, test, x_cell_min, y_cell_min, step)
-    #         print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
-    #         knn_result_list = []
-    #         label_list = []
-    #         for i, probe in enumerate(cur_train):
-    #             knn_result_list.append(functions_py.knn(probe, cur_train, cur_labels, mapk=map_k, knn=20))
-    #             label_list.append([cur_labels[i]])
-    #         print('The MAP3 score is %f' % mapk(label_list, knn_result_list, map_k))
+
+    np.random.seed(2016)
+    # train evaluating
+    knn_result_list = []
+    label_list = []
+    for x_cell_min in x_arange:
+        for y_cell_min in y_arange:
+            print('Working on %f, %f cell' % (x_cell_min + step / 2, y_cell_min + step / 2))
+            cur_train, cur_test, cur_labels = find_index_in_cell(train_inc_labels, test, x_cell_min, y_cell_min, step)
+            print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
+            for i, probe in enumerate(cur_train.values):
+                knn_result_list.append(list(functions_py.knn(probe, cur_train.values, cur_labels.values,
+                                                             self_test=True, mapk=map_k, k_nn=20)))
+                label_list.append([cur_labels.values[i]])
+            print('The MAP3 score is %f' % mapk(label_list, knn_result_list, map_k))
+            print('***')
+
     np.random.seed(2016)
     # test predicting
     knn_ids_str = np.full((test.shape[0],), fill_value='0 1 2', dtype=object)
@@ -112,8 +115,9 @@ def main():
             print('Train size is %d, test size is %d' % (cur_train.shape[0], cur_test.shape[0]))
             test_index = cur_test.index.values
             for i, probe in enumerate(cur_test.values):
-                knn_ids_str[test_index[i]] = ' '.join(functions_py.knn(probe, cur_train.values, cur_labels.values,
-                                                                       self_test=False, mapk=map_k, k_nn=30))
+                knn_ids_str[test_index[i]] = ' '.join(list(functions_py.knn(probe, cur_train.values, cur_labels.values,
+                                                                            self_test=False, mapk=map_k,
+                                                                            k_nn=20).astype(str)))
                 # print(test_index[i], knn_ids_str[test_index[i]])
     submission = pd.DataFrame.from_csv('sample_submission.csv')
     submission['place_id'] = knn_ids_str
